@@ -1,20 +1,45 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
+import { FavoriteService } from '../../services/favorite.service';
+import { PokemonService } from '../../services/pokemon.service';
+import { PokemonDetails } from '../../interfaces/pokemon';
+import { forkJoin } from 'rxjs';
+import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-favorites',
   templateUrl: './favorites.page.html',
   styleUrls: ['./favorites.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, RouterModule],
 })
-export class FavoritesPage implements OnInit {
+export class FavoritesPage {
+  favoritePokemons: PokemonDetails[] = [];
 
-  constructor() { }
+  constructor(
+    private favoriteService: FavoriteService,
+    private pokemonService: PokemonService
+  ) {}
 
-  ngOnInit() {
+  ionViewWillEnter() {
+    this.loadFavorites();
   }
 
+  loadFavorites() {
+    this.favoritePokemons = [];
+    const favoriteIds = this.favoriteService.getFavoriteIds();
+
+    if (favoriteIds.length === 0) {
+      return;
+    }
+
+    const requests = favoriteIds.map(id => this.pokemonService.getPokemonDetails(id));
+
+    if (requests.length > 0) {
+      forkJoin(requests).subscribe(pokemons => {
+        this.favoritePokemons = pokemons;
+      });
+    }
+  }
 }
